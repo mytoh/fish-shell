@@ -84,9 +84,9 @@ static void insert_tabs(wcstring &out, int indent)
  */
 static void insert_spaces(wcstring &out, int indent)
 {
+  int space_num = 2;
     if (indent > 0)
-        out.append((size_t)indent, L' ');
-
+        out.append((size_t)indent * space_num, L' ');
 }
 
 
