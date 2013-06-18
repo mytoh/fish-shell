@@ -80,6 +80,17 @@ static void insert_tabs(wcstring &out, int indent)
 }
 
 /**
+   Insert the specified number of spaces into the output buffer
+ */
+static void insert_spaces(wcstring &out, int indent)
+{
+    if (indent > 0)
+        out.append((size_t)indent, L' ');
+
+}
+
+
+/**
    Indent the specified input
  */
 static int indent(wcstring &out, const wcstring &in, int flags)
@@ -129,9 +140,14 @@ static int indent(wcstring &out, const wcstring &in, int flags)
                     }
 
 
+                    // if (do_indent && flags && prev_type != TOK_PIPE)
+                    // {
+                    //     insert_tabs(out, indent);
+                    // }
+
                     if (do_indent && flags && prev_type != TOK_PIPE)
                     {
-                        insert_tabs(out, indent);
+                        insert_spaces(out, indent);
                     }
 
                     append_format(out, L"%ls", last);
@@ -235,9 +251,14 @@ static int indent(wcstring &out, const wcstring &in, int flags)
 
             case TOK_COMMENT:
             {
+                // if (do_indent && flags)
+                // {
+                //     insert_tabs(out, indent);
+                // }
+
                 if (do_indent && flags)
                 {
-                    insert_tabs(out, indent);
+                    insert_spaces(out, indent);
                 }
 
                 append_format(out, L"%ls", last);
