@@ -44,7 +44,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /**
    The string describing the single-character options accepted by the main fish binary
 */
-#define GETOPT_STRING "hvi"
+#define GETOPT_STRING "hvis"
 
 /**
    Read the entire contents of a file into the specified string
@@ -93,7 +93,7 @@ static void insert_spaces(wcstring &out, int indent)
 /**
    Indent the specified input
  */
-static int indent(wcstring &out, const wcstring &in, int flags)
+static int indent(wcstring &out, const wcstring &in, int flags, int flag_indent_space)
 {
     int res=0;
     int is_command = 1;
@@ -101,6 +101,7 @@ static int indent(wcstring &out, const wcstring &in, int flags)
     int do_indent = 1;
     int prev_type = 0;
     int prev_prev_type = 0;
+    int indent_space = flag_indent_space;
 
     tokenizer_t tok(in.c_str(), TOK_SHOW_COMMENTS);
     for (; tok_has_next(&tok); tok_next(&tok))
@@ -140,14 +141,19 @@ static int indent(wcstring &out, const wcstring &in, int flags)
                     }
 
 
-                    // if (do_indent && flags && prev_type != TOK_PIPE)
-                    // {
-                    //     insert_tabs(out, indent);
-                    // }
-
-                    if (do_indent && flags && prev_type != TOK_PIPE)
+                    if (indent_space)
                     {
-                        insert_spaces(out, indent);
+                        if (do_indent && flags && prev_type != TOK_PIPE)
+                        {
+                            insert_spaces(out, indent);
+                        }
+                    }
+                    else
+                    {
+                        if (do_indent && flags && prev_type != TOK_PIPE)
+                        {
+                            insert_tabs(out, indent);
+                        }
                     }
 
                     append_format(out, L"%ls", last);
@@ -251,15 +257,20 @@ static int indent(wcstring &out, const wcstring &in, int flags)
 
             case TOK_COMMENT:
             {
-                // if (do_indent && flags)
-                // {
-                //     insert_tabs(out, indent);
-                // }
-
-                if (do_indent && flags)
-                {
-                    insert_spaces(out, indent);
-                }
+              if (indent_space)
+              {
+                  if (do_indent && flags)
+                  {
+                     insert_spaces(out, indent);
+                  }
+              }
+              else
+              {
+                  if (do_indent && flags)
+                  {
+                      insert_tabs(out, indent);
+                  }
+              }
 
                 append_format(out, L"%ls", last);
                 do_indent = 1;
@@ -306,6 +317,7 @@ static void trim(wcstring &str)
 int main(int argc, char **argv)
 {
     int do_indent=1;
+    int indent_space = 0;
     set_main_thread();
     setup_fork_guards();
 
@@ -330,6 +342,10 @@ int main(int argc, char **argv)
             }
             ,
             {
+                "indent-space", no_argument, 0, 's'
+            }
+            ,
+            {
                 0, 0, 0, 0
             }
         }
@@ -347,41 +363,46 @@ int main(int argc, char **argv)
             break;
 
         switch (opt)
-        {
-            case 0:
+          {
+          case 0:
             {
-                break;
+              break;
             }
 
-            case 'h':
+          case 'h':
             {
-                print_help("fish_indent", 1);
-                exit(0);
-                break;
+              print_help("fish_indent", 1);
+              exit(0);
+              break;
             }
 
-            case 'v':
+          case 'v':
             {
-                fwprintf(stderr,
-                         _(L"%ls, version %s\n"),
-                         program_name,
-                         PACKAGE_VERSION);
-                exit(0);
+              fwprintf(stderr,
+                       _(L"%ls, version %s\n"),
+                       program_name,
+                       PACKAGE_VERSION);
+              exit(0);
             }
 
-            case 'i':
+          case 'i':
             {
-                do_indent = 0;
-                break;
+              do_indent = 0;
+              break;
             }
 
-
-            case '?':
+          case 's':
             {
-                exit(1);
+              indent_space = 1;
+              break;
             }
 
-        }
+          case '?':
+            {
+              exit(1);
+            }
+
+          }
     }
 
     wcstring sb_in, sb_out;
@@ -389,7 +410,7 @@ int main(int argc, char **argv)
 
     wutil_init();
 
-    if (!indent(sb_out, sb_in, do_indent))
+    if (!indent(sb_out, sb_in, do_indent, indent_space))
     {
         trim(sb_out);
         fwprintf(stdout, L"%ls", sb_out.c_str());
