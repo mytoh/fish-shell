@@ -155,8 +155,7 @@
 #
 # The separator before the upstream information can be customized via
 # __fish_git_prompt_char_upstream_prefix.  It is colored like the rest of
-# the upstream information.  It normallly defaults to a space ( ) and defaults
-# to nothing () when __fish_git_prompt_show_informative_status is set.
+# the upstream information.  It defaults to nothing ().
 #
 #
 # Turning on __fish_git_prompt_showcolorhints changes the colors as follows to
@@ -375,7 +374,8 @@ function __fish_git_prompt --description "Prompt function for Git"
 			end
 
 			if test -n "$__fish_git_prompt_showuntrackedfiles"
-				if test (git config --bool bash.showUntrackedFiles) != false
+				set -l config (git config --bool bash.showUntrackedFiles)
+				if test "$config" != false
 					if git ls-files --others --exclude-standard --error-unmatch -- '*' >/dev/null ^/dev/null
 						set u $___fish_git_prompt_char_untrackedfiles
 					end
@@ -635,7 +635,7 @@ function __fish_git_prompt_validate_chars --description "__fish_git_prompt helpe
 	__fish_git_prompt_set_char __fish_git_prompt_char_upstream_behind   '<' '↓'
 	__fish_git_prompt_set_char __fish_git_prompt_char_upstream_diverged '<>'
 	__fish_git_prompt_set_char __fish_git_prompt_char_upstream_equal    '='
-	__fish_git_prompt_set_char __fish_git_prompt_char_upstream_prefix   ' '
+	__fish_git_prompt_set_char __fish_git_prompt_char_upstream_prefix   ''
 
 end
 
