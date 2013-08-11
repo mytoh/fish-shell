@@ -377,11 +377,11 @@ int main(int argc, char **argv)
 
           case 'v':
             {
-              fwprintf(stderr,
-                       _(L"%ls, version %s\n"),
-                       program_name,
-                       PACKAGE_VERSION);
-              exit(0);
+                fwprintf(stderr,
+                         _(L"%ls, version %s\n"),
+                         program_name,
+                         FISH_BUILD_VERSION);
+                exit(0);
             }
 
           case 'i':
