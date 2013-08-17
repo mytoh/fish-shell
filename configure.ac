@@ -1,4 +1,3 @@
-
 #
 # This file is the main build configuration file for fish. It is used
 # to determine your systems capabilities, and tries to adapt fish to
@@ -12,7 +11,7 @@
 m4_syscmd([build_tools/git_version_gen.sh 2>/dev/null])
 
 AC_INIT(fish,
-        m4_esyscmd_s([cut -f 3 -d ' ' FISH-BUILD-VERSION-FILE]),
+        m4_esyscmd([cut -f 3 -d ' ' FISH-BUILD-VERSION-FILE | tr -d '\n']),
         fish-users@lists.sf.net)
 
 conf_arg=$@
