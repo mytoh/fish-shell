@@ -1653,24 +1653,36 @@ bool compare_completions_by_match_type(const completion_t &a, const completion_t
     return wcsfilecmp(a.completion.c_str(), b.completion.c_str()) < 0;
 }
 
-/* Order completions such that case insensitive completions come first. */
-static void prioritize_completions(std::vector<completion_t> &comp)
+/* Determine the best match type for a set of completions */
+static fuzzy_match_type_t get_best_match_type(const std::vector<completion_t> &comp)
 {
-    /* Determine the best match type */
-    size_t i;
     fuzzy_match_type_t best_type = fuzzy_match_none;
-    for (i=0; i < comp.size(); i++)
+    for (size_t i=0; i < comp.size(); i++)
     {
         const completion_t &el = comp.at(i);
         if (el.match.type < best_type)
+        {
             best_type = el.match.type;
+        }
     }
+    /* If the best type is an exact match, reduce it to prefix match. Otherwise a tab completion will only show one match if it matches a file exactly. (see issue #959) */
+    if (best_type == fuzzy_match_exact)
+    {
+        best_type = fuzzy_match_prefix;
+    }
+    return best_type;
+}
 
-    /* Throw out completions whose match types are not the best. */
-    i = comp.size();
+/* Order completions such that case insensitive completions come first. */
+static void prioritize_completions(std::vector<completion_t> &comp)
+{
+    fuzzy_match_type_t best_type = get_best_match_type(comp);
+
+    /* Throw out completions whose match types are less suitable than the best. */
+    size_t i = comp.size();
     while (i--)
     {
-        if (comp.at(i).match.type != best_type)
+        if (comp.at(i).match.type > best_type)
         {
             comp.erase(comp.begin() + i);
         }
@@ -1785,24 +1797,14 @@ static bool handle_completions(const std::vector<completion_t> &comp)
 
     if (!done)
     {
-
-        /* Determine the type of the best match(es) */
-        fuzzy_match_type_t best_match_type = fuzzy_match_none;
-        for (size_t i=0; i < comp.size(); i++)
-        {
-            const completion_t &el = comp.at(i);
-            if (el.match.type < best_match_type)
-            {
-                best_match_type = el.match.type;
-            }
-        }
+        fuzzy_match_type_t best_match_type = get_best_match_type(comp);
 
         /* Determine whether we are going to replace the token or not. If any commands of the best type do not require replacement, then ignore all those that want to use replacement */
         bool will_replace_token = true;
         for (size_t i=0; i< comp.size(); i++)
         {
             const completion_t &el = comp.at(i);
-            if (el.match.type == best_match_type && !(el.flags & COMPLETE_REPLACES_TOKEN))
+            if (el.match.type <= best_match_type && !(el.flags & COMPLETE_REPLACES_TOKEN))
             {
                 will_replace_token = false;
                 break;
@@ -1814,8 +1816,8 @@ static bool handle_completions(const std::vector<completion_t> &comp)
         for (size_t i=0; i < comp.size(); i++)
         {
             const completion_t &el = comp.at(i);
-            /* Only use completions with the best match type */
-            if (el.match.type != best_match_type)
+            /* Ignore completions with a less suitable match type than the best. */
+            if (el.match.type > best_match_type)
                 continue;
 
             /* Only use completions that match replace_token */
