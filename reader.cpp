@@ -1702,17 +1702,16 @@ static const completion_t *cycle_competions(const std::vector<completion_t> &com
     if (size == 0)
         return NULL;
 
+    // note start_idx will be set to -1 initially, so that when it gets incremented we start at 0
     const size_t start_idx = *inout_idx;
     size_t idx = start_idx;
+    
     const completion_t *result = NULL;
-    for (;;)
+    size_t remaining = comp.size();
+    while (remaining--)
     {
         /* Bump the index */
         idx = (idx + 1) % size;
-
-        /* Bail if we've looped */
-        if (idx == start_idx)
-            break;
 
         /* Get the completion */
         const completion_t &c = comp.at(idx);
@@ -3790,7 +3789,43 @@ const wchar_t *reader_readline(void)
                 }
                 break;
             }
-
+                
+            case R_UPCASE_WORD:
+            case R_DOWNCASE_WORD:
+            case R_CAPITALIZE_WORD:
+            {
+                // For capitalize_word, whether we've capitalized a character so far
+                bool capitalized_first = false;
+                
+                // We apply the operation from the current location to the end of the word
+                size_t pos = data->buff_pos;
+                move_word(MOVE_DIR_RIGHT, false, move_word_style_punctuation, false);
+                for (; pos < data->buff_pos; pos++)
+                {
+                    wchar_t chr = data->command_line.at(pos);
+                    
+                    // We always change the case; this decides whether we go uppercase (true) or lowercase (false)
+                    bool make_uppercase;
+                    if (c == R_CAPITALIZE_WORD)
+                        make_uppercase = ! capitalized_first && iswalnum(chr);
+                    else
+                        make_uppercase = (c == R_UPCASE_WORD);
+                    
+                    // Apply the operation and then record what we did
+                    if (make_uppercase)
+                        chr = towupper(chr);
+                    else
+                        chr = towlower(chr);
+                    
+                    data->command_line.at(pos) = chr;
+                    capitalized_first = capitalized_first || make_uppercase;
+                }
+                data->command_line_changed();
+                reader_super_highlight_me_plenty(data->buff_pos);
+                reader_repaint();
+                break;
+            }
+                
             /* Other, if a normal character, we add it to the command */
             default:
             {
