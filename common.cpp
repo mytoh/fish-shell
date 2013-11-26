@@ -1197,7 +1197,7 @@ static size_t read_unquoted_escape(const wchar_t *input, wcstring *result, bool 
                 case L'U':
                 {
                     chars=8;
-                    max_val = WCHAR_MAX;
+                    max_val = mini(WCHAR_MAX, 0x10FFFF); // Largest Unicode code point - see #1107
                     break;
                 }
 
@@ -1594,6 +1594,7 @@ static bool unescape_string_internal(const wchar_t * const input, const size_t i
                         {
                             /* Swallow newline */
                             to_append = NOT_A_WCHAR;
+                            input_position += 1; /* Skip over the backslash */
                             break;
                         }
 
