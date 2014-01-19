@@ -11,7 +11,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 #
 
 #
@@ -47,7 +47,6 @@ mandir = @mandir@
 sysconfdir = @sysconfdir@
 docdir = @docdir@
 localedir = @localedir@
-optbindirs = @optbindirs@
 
 #
 # Various flags
@@ -92,7 +91,7 @@ FISH_OBJS := function.o builtin.o complete.o env.o exec.o expand.o		\
 	env_universal.o env_universal_common.o input_common.o event.o		\
 	signal.o io.o parse_util.o common.o screen.o path.o autoload.o		\
 	parser_keywords.o iothread.o color.o postfork.o	\
-	builtin_test.o
+	builtin_test.o parse_tree.o parse_productions.o parse_execution.cpp
 
 FISH_INDENT_OBJS := fish_indent.o print_help.o common.o	\
 parser_keywords.o wutil.o tokenizer.o
@@ -159,11 +158,6 @@ HDR_FILES := $(HDR_FILES_SRC:.hdr.in=.hdr)
 
 # Use a pattern rule so that Make knows to only issue one invocation
 # per http://www.gnu.org/software/make/manual/make.html#Pattern-Intro
-
-# Internalized scripts are currently disabled.
-# For now, we just generate empty arrays.
-# To generate them again, you would run this:
-# ./internalize_scripts.py share/functions/*.fish share/completions/*.fish
 
 
 #
@@ -307,7 +301,8 @@ doc/refman.pdf: doc
 #
 
 test: $(PROGRAMS) fish_tests
-	./fish_tests; cd tests; ../fish <test.fish;
+	./fish_tests
+	cd tests; ../fish <test.fish;
 .PHONY: test
 
 
@@ -381,8 +376,6 @@ doc.h: $(HDR_FILES)
 		-e "s,@docdir\@,$(docdir),g" \
 		-e "s|@configure_input\@|$@, generated from $@.in by the Makefile. DO NOT MANUALLY EDIT THIS FILE!|g" \
 		-e "s,@prefix\@,$(prefix),g" \
-		-e "s,@optbindirs\@,$(optbindirs),g"
-#-e "s,@\@,$(),"
 
 
 #
@@ -557,6 +550,8 @@ install-force: all install-translations
 	$(INSTALL) -m 755 -d $(DESTDIR)$(datadir)/fish/man/man1
 	$(INSTALL) -m 755 -d $(DESTDIR)$(datadir)/fish/tools
 	$(INSTALL) -m 755 -d $(DESTDIR)$(datadir)/fish/tools/web_config
+	$(INSTALL) -m 755 -d $(DESTDIR)$(datadir)/fish/tools/web_config/js
+	$(INSTALL) -m 755 -d $(DESTDIR)$(datadir)/fish/tools/web_config/partials
 	$(INSTALL) -m 755 -d $(DESTDIR)$(datadir)/fish/tools/web_config/sample_prompts
 	$(INSTALL) -m 644 etc/config.fish                  $(DESTDIR)$(sysconfdir)/fish/
 	$(INSTALL) -m 644 share/config.fish                $(DESTDIR)$(datadir)/fish/
@@ -578,6 +573,14 @@ install-force: all install-translations
 	done;
 	for i in share/tools/web_config/*; do\
 		$(INSTALL) -m 644 $$i $(DESTDIR)$(datadir)/fish/tools/web_config/; \
+		true; \
+	done;
+	for i in share/tools/web_config/js/*; do\
+		$(INSTALL) -m 644 $$i $(DESTDIR)$(datadir)/fish/tools/web_config/js/; \
+		true; \
+	done;
+	for i in share/tools/web_config/partials/*; do\
+		$(INSTALL) -m 644 $$i $(DESTDIR)$(datadir)/fish/tools/web_config/partials/; \
 		true; \
 	done;
 	for i in share/tools/web_config/sample_prompts/*.fish; do\
@@ -775,7 +778,6 @@ distclean: clean
 
 clean:
 	rm -f *.o doc.h doc.tmp doc_src/*.doxygen doc_src/*.cpp doc_src/*.o doc_src/commands.hdr
-	rm -f $(GENERATED_INTERN_SCRIPT_FILES)
 	rm -f tests/tmp.err tests/tmp.out tests/tmp.status tests/foo.txt
 	rm -f $(PROGRAMS) fish_tests key_reader
 	rm -f command_list.txt command_list_toc.txt toc.txt

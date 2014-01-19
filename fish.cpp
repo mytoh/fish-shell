@@ -12,7 +12,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 */
 
 
@@ -187,11 +187,16 @@ static struct config_paths_t determine_config_directory_paths(const char *argv0)
                 paths.sysconf = base_path + L"/etc/fish";
                 paths.doc = base_path + L"/share/doc/fish";
                 paths.bin = base_path + L"/bin";
-
+                
+                /* Check only that the data and sysconf directories exist. Handle the doc directories separately */
                 struct stat buf;
-                if (0 == wstat(paths.data, &buf) && 0 == wstat(paths.sysconf, &buf) &&
-                        0 == wstat(paths.doc, &buf))
+                if (0 == wstat(paths.data, &buf) && 0 == wstat(paths.sysconf, &buf))
                 {
+                    /* The docs dir may not exist; in that case fall back to the compiled in path */
+                    if (0 != wstat(paths.doc, &buf))
+                    {
+                        paths.doc = L"" DOCDIR;
+                    }
                     done = true;
                 }
             }
